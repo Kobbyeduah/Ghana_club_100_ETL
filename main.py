@@ -1,8 +1,6 @@
 import random
 from faker import Faker
 import mysql.connector
-import pandas as pd
-
 
 class DataPipeline:
     def __init__(self, user, password, host, database):
@@ -34,23 +32,24 @@ class DataPipeline:
             database=self.database
         )
 
-    def ingest_data(self, cursor, records):
+    def ingest_data(self, cursor, records, table_name):
         """
-        Ingests data into the 'customers' table.
+        Ingests data into the specified table.
 
         Parameters:
             cursor (mysql.connector.cursor.MySQLCursor): Database cursor object.
             records (list): List of tuples containing customer records.
+            table_name (str): Name of the table to ingest data into.
         """
         for record in records:
-            cursor.execute('''
-                INSERT INTO customers (customer_id, name, address, email, telephone, contact_preference, transaction_activity, customer_preference, communication_method)
+            cursor.execute(f'''
+                INSERT INTO {table_name} (customer_id, name, address, email, telephone, contact_preference, transaction_activity, customer_preference, communication_method)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
             ''', record)
 
     def run_pipeline(self, records):
         """
-        Runs the data pipeline to ingest data.
+        Runs the data pipeline to ingest data into all tables.
 
         Parameters:
             records (list): List of tuples containing customer records.
@@ -59,7 +58,10 @@ class DataPipeline:
         cursor = conn.cursor()
 
         try:
-            self.ingest_data(cursor, records)
+            # Iterate over each table and ingest data
+            for table_name in table_names:
+                self.ingest_data(cursor, records, table_name)
+
             conn.commit()
             print("Data ingestion successful.")
         except Exception as e:
@@ -97,11 +99,25 @@ def generate_records():
 
 
 if __name__ == "__main__":
-    # Database credentials for MySQL (phpMyAdmin in Docker)
+    # Database credentials for MySQL
     user = "admin"
-    password = "password"  # MySQL root password
+    password = "password"
     host = "localhost"
-    database = "Top 10 Companies"  #  database name
+    database = "Top_10_Companies"  # database name (note: changed to use underscores instead of spaces)
+
+    # Table names
+    table_names = [
+        "Nationwide_Medical_Insurance",
+        "Microfin_Rural_Bank",
+        "Tropical_Cable_And_Conductor_Ltd",
+        "Imperial_Homes_Limited",
+        "Zonda_Tec_Ghana_Limited",
+        "Wilmar_Africa_Limited",
+        "Bayport_Savings_And_Loans_Plc",
+        "Ghandour_Cosmetics_Ltd",
+        "Star_Assurance_Company_Ltd",
+        "DHL_Ghana_Ltd"
+    ]
 
     # Generate records
     records = generate_records()
