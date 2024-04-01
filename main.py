@@ -1,6 +1,7 @@
 import random
 from faker import Faker
 import mysql.connector
+from tqdm import tqdm
 
 class DataPipeline:
     def __init__(self, user, password, host, database):
@@ -47,34 +48,35 @@ class DataPipeline:
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
             ''', record)
 
-    def run_pipeline(self, records):
+    def run_pipeline(self, records, table_name):
         """
-        Runs the data pipeline to ingest data into all tables.
+        Runs the data pipeline to ingest data into the specified table.
 
         Parameters:
             records (list): List of tuples containing customer records.
+            table_name (str): Name of the table to ingest data into.
         """
         conn = self.create_connection()
         cursor = conn.cursor()
 
         try:
-            # Iterate over each table and ingest data
-            for table_name in table_names:
-                self.ingest_data(cursor, records, table_name)
-
+            self.ingest_data(cursor, records, table_name)
             conn.commit()
-            print("Data ingestion successful.")
+            print(f"Data ingestion successful for {table_name}.")
         except Exception as e:
             conn.rollback()
-            print(f"Error during data ingestion: {str(e)}")
+            print(f"Error during data ingestion for {table_name}: {str(e)}")
         finally:
             cursor.close()
             conn.close()
 
 
-def generate_records():
+def generate_records(table_name):
     """
-    Generates fake customer records using Faker library.
+    Generates fake customer records for a specific table using Faker library.
+
+    Parameters:
+        table_name (str): Name of the table.
 
     Returns:
         list: List of tuples containing customer records.
@@ -103,7 +105,7 @@ if __name__ == "__main__":
     user = "admin"
     password = "password"
     host = "localhost"
-    database = "Top_10_Companies"  # database name (note: changed to use underscores instead of spaces)
+    database = "Top 10 Companies"  
 
     # Table names
     table_names = [
@@ -119,9 +121,10 @@ if __name__ == "__main__":
         "DHL_Ghana_Ltd"
     ]
 
-    # Generate records
-    records = generate_records()
-
-    # Initialize pipeline and run
+    # Initialize pipeline and run for each table
     pipeline = DataPipeline(user, password, host, database)
-    pipeline.run_pipeline(records)
+    for table_name in table_names:
+        records = generate_records(table_name)
+        with tqdm(total=len(records), desc=f"Ingesting data into {table_name}", unit=' records') as pbar:
+            pipeline.run_pipeline(records, table_name)
+            pbar.update(len(records))  # Update progress bar after each table is processed
